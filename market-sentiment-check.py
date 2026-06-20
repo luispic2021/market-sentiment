@@ -28,6 +28,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 USE_MODEL = os.getenv("USE_MODEL", "openai")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
+ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-opus-4-8")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -44,7 +46,7 @@ else:
     raise ValueError("Missing or invalid API configuration.")
 
 def log_message(level, message, debug_file="market_sentiment_debug.log"):
-    levels = {"DEBUG": 10, "INFO": 20, "WARNING": 30}
+    levels = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40}
     current_level = levels.get(LOG_LEVEL.upper(), 20)
     message_level = levels.get(level.upper(), 100)
     if message_level >= current_level:
@@ -71,7 +73,8 @@ def send_push_notification(message):
 def fetch_article():
     url = "https://www.schwab.com/learn/story/stock-market-update-open"
     headers = {"User-Agent": "Mozilla/5.0"}
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=30)
+    response.raise_for_status()
     # Save response to a file for debugging
     with open("article_html.log", "w", encoding="utf-8") as f:
         f.write(response.text)
@@ -118,18 +121,20 @@ Article:
 """
     if USE_MODEL == "openai":
         completion = openai.ChatCompletion.create(
-            model="gpt-4",
+            model=OPENAI_MODEL,
             messages=[{"role": "user", "content": prompt}]
         )
-        return completion.choices[0].message.content.strip(), "gpt-4"
+        return completion.choices[0].message.content.strip(), OPENAI_MODEL
     elif USE_MODEL == "anthropic":
-        response = client.messages.create(
-            model="claude-opus-4-20250514",
-            max_tokens=512,
-            temperature=0,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response.content[0].text.strip(), "claude-opus-4-20250514"
+        request = {
+            "model": ANTHROPIC_MODEL,
+            "max_tokens": 512,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        if not ANTHROPIC_MODEL.startswith("claude-opus-4-7") and not ANTHROPIC_MODEL.startswith("claude-opus-4-8"):
+            request["temperature"] = 0
+        response = client.messages.create(**request)
+        return response.content[0].text.strip(), ANTHROPIC_MODEL
     return "Undetermined", "unknown"
 
 def clean_sentiment(raw):
@@ -205,4 +210,8 @@ def main(retry=False):
     send_push_notification(push_message)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        log_message("ERROR", f"Unhandled failure: {type(e).__name__}: {e}")
+        raise

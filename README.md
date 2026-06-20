@@ -28,6 +28,8 @@ pip install -r requirements.txt
 
 ```env
 USE_MODEL=anthropic                   # or "openai"
+ANTHROPIC_MODEL=claude-opus-4-8
+OPENAI_MODEL=gpt-4
 OPENAI_API_KEY=your-openai-key
 ANTHROPIC_API_KEY=your-anthropic-key
 PUSHOVER_USER_KEY=your-pushover-user-key

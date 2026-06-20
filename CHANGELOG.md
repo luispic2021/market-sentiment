@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-06-20: v0.5 Model retirement fix
+
+### Fixed
+- Updated the default Anthropic model from retired `claude-opus-4-20250514` to active `claude-opus-4-8`, matching Anthropic's recommended replacement after the June 15, 2026 retirement.
+- Added top-level exception logging so API/model failures are written to `market_sentiment_debug.log` and no longer fail silently.
+- Added HTTP timeout and status checks when fetching the Schwab article.
+
+### Improved
+- Added `ANTHROPIC_MODEL` and `OPENAI_MODEL` environment overrides.
+
 ## 2025-08-03: v0.4 Anthropic Model upgrade
 
 ### Features
